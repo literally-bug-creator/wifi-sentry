@@ -1,10 +1,8 @@
 from typing import List, Tuple
 from .wifi_network import WiFiNetwork, SecurityType
 from .constants import (
-    SCORE_OPEN_NETWORK, SCORE_HANDSHAKE_CAPTURE, SCORE_DUPLICATE_SSID,
-    SCORE_EVIL_TWIN_SIGNAL, SCORE_MULTI_CHANNEL, SCORE_SIMILAR_SSIDS,
-    SCORE_OPEN_WITH_ENCRYPTED, SIGNAL_DIFF_THRESHOLD, SIMILAR_SSID_THRESHOLD,
-    SUSPICIOUS_SSID_PATTERNS, RISK_THRESHOLDS, RISK_LEVELS, RISK_INDICATORS
+    SIGNAL_DIFF_THRESHOLD, SIMILAR_SSID_THRESHOLD,
+    SUSPICIOUS_SSID_PATTERNS, RiskLevel, RiskIndicator
 )
 
 
@@ -22,7 +20,7 @@ class WiFiScorer:
         duplicates = self._get_ssid_duplicates(target.get_ssid())
         if len(duplicates) < 2:
             return False
-        
+
         signals = [n._signal_strength for n in duplicates]
         return (max(signals) - min(signals)) > SIGNAL_DIFF_THRESHOLD
 
@@ -34,7 +32,7 @@ class WiFiScorer:
     def _has_similar_ssids(self, target: WiFiNetwork) -> bool:
         target_ssid = target.get_ssid().lower()
         all_ssids = [n.get_ssid().lower() for n in self._networks]
-        
+
         for pattern in SUSPICIOUS_SSID_PATTERNS:
             if pattern in target_ssid:
                 matches = sum(1 for ssid in all_ssids if pattern in ssid)
@@ -45,7 +43,7 @@ class WiFiScorer:
     def _has_open_with_encrypted_duplicate(self, target: WiFiNetwork) -> bool:
         if target.get_security_type() != SecurityType.OPEN:
             return False
-        
+
         duplicates = self._get_ssid_duplicates(target.get_ssid())
         return any(n.is_secured() for n in duplicates if n != target)
 
@@ -58,49 +56,36 @@ class WiFiScorer:
         reasons = []
 
         if target.get_security_type() == SecurityType.OPEN:
-            score += SCORE_OPEN_NETWORK
-            reasons.append(f"{RISK_INDICATORS['open']} (+{SCORE_OPEN_NETWORK})")
+            score += RiskIndicator.OPEN.score
+            reasons.append(f"{RiskIndicator.OPEN.description} (+{RiskIndicator.OPEN.score})")
 
         if self._is_handshake_vulnerable(target):
-            score += SCORE_HANDSHAKE_CAPTURE
-            reasons.append(f"{RISK_INDICATORS['handshake']} (+{SCORE_HANDSHAKE_CAPTURE})")
+            score += RiskIndicator.HANDSHAKE.score
+            reasons.append(f"{RiskIndicator.HANDSHAKE.description} (+{RiskIndicator.HANDSHAKE.score})")
 
         if self._has_duplicate_ssid(target):
-            score += SCORE_DUPLICATE_SSID
-            reasons.append(f"{RISK_INDICATORS['duplicate']} (+{SCORE_DUPLICATE_SSID})")
+            score += RiskIndicator.DUPLICATE.score
+            reasons.append(f"{RiskIndicator.DUPLICATE.description} (+{RiskIndicator.DUPLICATE.score})")
 
         if self._has_evil_twin_signal(target):
-            score += SCORE_EVIL_TWIN_SIGNAL
-            reasons.append(f"{RISK_INDICATORS['evil_twin']} (+{SCORE_EVIL_TWIN_SIGNAL})")
+            score += RiskIndicator.EVIL_TWIN.score
+            reasons.append(f"{RiskIndicator.EVIL_TWIN.description} (+{RiskIndicator.EVIL_TWIN.score})")
 
         if self._has_multi_channel(target):
-            score += SCORE_MULTI_CHANNEL
-            reasons.append(f"{RISK_INDICATORS['multi_channel']} (+{SCORE_MULTI_CHANNEL})")
+            score += RiskIndicator.MULTI_CHANNEL.score
+            reasons.append(f"{RiskIndicator.MULTI_CHANNEL.description} (+{RiskIndicator.MULTI_CHANNEL.score})")
 
         if self._has_similar_ssids(target):
-            score += SCORE_SIMILAR_SSIDS
-            reasons.append(f"{RISK_INDICATORS['similar_ssids']} (+{SCORE_SIMILAR_SSIDS})")
+            score += RiskIndicator.SIMILAR_SSIDS.score
+            reasons.append(f"{RiskIndicator.SIMILAR_SSIDS.description} (+{RiskIndicator.SIMILAR_SSIDS.score})")
 
         if self._has_open_with_encrypted_duplicate(target):
-            score += SCORE_OPEN_WITH_ENCRYPTED
-            reasons.append(f"{RISK_INDICATORS['open_encrypted']} (+{SCORE_OPEN_WITH_ENCRYPTED})")
+            score += RiskIndicator.OPEN_ENCRYPTED.score
+            reasons.append(f"{RiskIndicator.OPEN_ENCRYPTED.description} (+{RiskIndicator.OPEN_ENCRYPTED.score})")
 
         return score, reasons
 
     def get_risk_level(self, score: int) -> Tuple[str, int]:
-        for level, (min_score, max_score, min_rating, max_rating) in RISK_THRESHOLDS.items():
-            if min_score <= score <= max_score:
-                if level == 'safe':
-                    rating = 1 if score <= 2 else 2
-                elif level == 'minor':
-                    rating = 3 if score <= 6 else 4
-                elif level == 'medium':
-                    rating = 5 if score <= 11 else 6
-                elif level == 'high':
-                    rating = 7 if score <= 16 else 8
-                else:  # critical
-                    rating = 9 if score <= 25 else 10
-                
-                return RISK_LEVELS[level], rating
-        
-        return RISK_LEVELS['critical'], 10
+        risk_level = RiskLevel.from_score(score)
+        rating = risk_level.get_rating(score)
+        return risk_level.level_name, rating

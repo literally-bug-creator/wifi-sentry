@@ -85,21 +85,21 @@ class WiFiScanner:
             return None
 
         bssid = str(
-            await self._get_property(router, ap_path, AP_INTERFACE, "HwAddress")
+            await self._get_property(router, ap_path, AP_INTERFACE, "HwAddress") # type: ignore
         )
         strength = int(
-            await self._get_property(router, ap_path, AP_INTERFACE, "Strength")
-        )  # type: ignore
+            await self._get_property(router, ap_path, AP_INTERFACE, "Strength") # type: ignore
+        )
         frequency = int(
-            await self._get_property(router, ap_path, AP_INTERFACE, "Frequency")
-        )  # type: ignore
+            await self._get_property(router, ap_path, AP_INTERFACE, "Frequency") # type: ignore
+        )
         flags = int(await self._get_property(router, ap_path, AP_INTERFACE, "Flags"))  # type: ignore
         wpa_flags = int(
-            await self._get_property(router, ap_path, AP_INTERFACE, "WpaFlags")
-        )  # type: ignore
+            await self._get_property(router, ap_path, AP_INTERFACE, "WpaFlags") # type: ignore
+        )
         rsn_flags = int(
-            await self._get_property(router, ap_path, AP_INTERFACE, "RsnFlags")
-        )  # type: ignore
+            await self._get_property(router, ap_path, AP_INTERFACE, "RsnFlags") # type: ignore
+        )
 
         return WiFiNetwork(
             ssid=ssid,

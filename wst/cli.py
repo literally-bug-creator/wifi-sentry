@@ -1,14 +1,20 @@
 import argparse
 import asyncio
 import sys
-from typing import List, Optional
-from .wifi_scanner import WiFiScanner
-from .wifi_network import WiFiNetwork
-from .wifi_scorer import WiFiScorer
+
 from .constants import (
-    MAX_SSID_DISPLAY, SIGNAL_BAR_SEGMENTS, MSG_SCANNING, MSG_NO_NETWORKS,
-    MSG_NETWORK_NOT_FOUND, MSG_SCAN_INTERRUPTED, MSG_FATAL_ERROR, MSG_MUST_SPECIFY,
+    MAX_SSID_DISPLAY,
+    MSG_FATAL_ERROR,
+    MSG_MUST_SPECIFY,
+    MSG_NETWORK_NOT_FOUND,
+    MSG_NO_NETWORKS,
+    MSG_SCAN_INTERRUPTED,
+    MSG_SCANNING,
+    SIGNAL_BAR_SEGMENTS,
 )
+from .network import WiFiNetwork
+from .scanner import WiFiScanner
+from .scorer import WiFiScorer
 
 
 def format_table_row(network: WiFiNetwork, index: int) -> str:
@@ -26,7 +32,7 @@ def format_table_row(network: WiFiNetwork, index: int) -> str:
             f"{security_icon} {security:<10} │ {channel:2d} │ {frequency:4d}")
 
 
-def print_table(networks: List[WiFiNetwork]):
+def print_table(networks: list[WiFiNetwork]):
     if not networks:
         print(MSG_NO_NETWORKS)
         return
@@ -42,7 +48,7 @@ def print_table(networks: List[WiFiNetwork]):
     print("└────┴──────────────────────┴───────────────────┴──────────────────┴──────────────┴────┴──────┘")
 
 
-def print_score(network: WiFiNetwork, score: int, reasons: List[str], risk_level: str, rating: int):
+def print_score(network: WiFiNetwork, score: int, reasons: list[str], risk_level: str, rating: int):
     print(f"Target: {network.get_ssid()}")
     print(f"BSSID: {network.get_bssid()}")
     print(f"Security: {network.get_security_type().value}")
@@ -64,7 +70,7 @@ def print_score(network: WiFiNetwork, score: int, reasons: List[str], risk_level
         print("✅ LOW RISK")
 
 
-async def find_network(networks: List[WiFiNetwork], ssid: Optional[str], bssid: Optional[str]) -> Optional[WiFiNetwork]:
+async def find_network(networks: list[WiFiNetwork], ssid: str | None, bssid: str | None) -> WiFiNetwork | None:
     if ssid and bssid:
         return next((n for n in networks if n.get_ssid() == ssid and n.get_bssid() == bssid), None)
     elif ssid:
@@ -85,7 +91,7 @@ async def cmd_scan():
         sys.exit(1)
 
 
-async def cmd_score(ssid: Optional[str], bssid: Optional[str]):
+async def cmd_score(ssid: str | None, bssid: str | None):
     if not ssid and not bssid:
         print(MSG_MUST_SPECIFY)
         sys.exit(1)

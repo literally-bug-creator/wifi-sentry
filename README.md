@@ -8,16 +8,16 @@ A **CLI-based** tool for **passive vulnerability scanning and risk assessment of
 
 # 🧰 Features
 
-- [ ] Passive (non-intrusive) scanning of nearby access points and clients
-- [ ] Detection of common Wi-Fi vulnerabilities and anomalies
-- [ ] Risk scoring system (1–10) based on detected patterns
+- [x] Passive (non-intrusive) scanning of nearby access points and clients
+- [x] Detection of common Wi-Fi vulnerabilities and anomalies
+- [x] Risk scoring system (1–10) based on detected patterns
 
 # 📌 Detected Vulnerabilities
 
-- [ ] 🔓 **Open Network** - High risk of sniffing and MITM attacks
+- [x] 🔓 **Open Network** - High risk of sniffing and MITM attacks
 - [ ] 🤖 **WPS Enabled** - Susceptible to PIN brute-force attacks
 - [ ] 🧠 **Hidden SSID** - May hide malicious access points
-- [ ] 🦹 **Evil Twin Candidates** - Duplicate SSIDs with suspicious signal strength
+- [x] 🦹 **Evil Twin Candidates** - Duplicate SSIDs with suspicious signal strength
 - [ ] 📡 **Multi-channel AP** - Possible rogue access point behavior
 - [ ] 🧨 **Deauth/Disassoc Floods** - Indicator of DoS or handshake capture attempts
 - [ ] 📜 **Handshake/PMKID Capture** - Potential offline password cracking

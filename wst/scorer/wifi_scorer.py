@@ -1,16 +1,17 @@
-from typing import List, Tuple
-from .wifi_network import WiFiNetwork, SecurityType
+from ..network import SecurityType, WiFiNetwork
 from .constants import (
-    SIGNAL_DIFF_THRESHOLD, SIMILAR_SSID_THRESHOLD,
-    SUSPICIOUS_SSID_PATTERNS, RiskLevel, RiskIndicator
+    SIGNAL_DIFF_THRESHOLD,
+    SIMILAR_SSID_THRESHOLD,
+    SUSPICIOUS_SSID_PATTERNS,
 )
+from .enums import RiskIndicator, RiskLevel
 
 
 class WiFiScorer:
-    def __init__(self, networks: List[WiFiNetwork]):
+    def __init__(self, networks: list[WiFiNetwork]):
         self._networks = networks
 
-    def _get_ssid_duplicates(self, ssid: str) -> List[WiFiNetwork]:
+    def _get_ssid_duplicates(self, ssid: str) -> list[WiFiNetwork]:
         return [n for n in self._networks if n.get_ssid() == ssid]
 
     def _has_duplicate_ssid(self, target: WiFiNetwork) -> bool:
@@ -51,7 +52,7 @@ class WiFiScorer:
         vulnerable_types = {SecurityType.WPA, SecurityType.WPA2, SecurityType.WPA_WPA2}
         return target.get_security_type() in vulnerable_types
 
-    def calculate_score(self, target: WiFiNetwork) -> Tuple[int, List[str]]:
+    def calculate_score(self, target: WiFiNetwork) -> tuple[int, list[str]]:
         score = 0
         reasons = []
 
@@ -85,7 +86,7 @@ class WiFiScorer:
 
         return score, reasons
 
-    def get_risk_level(self, score: int) -> Tuple[str, int]:
+    def get_risk_level(self, score: int) -> tuple[str, int]:
         risk_level = RiskLevel.from_score(score)
         rating = risk_level.get_rating(score)
         return risk_level.level_name, rating

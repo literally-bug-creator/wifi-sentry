@@ -1,22 +1,23 @@
 import asyncio
-from typing import List
+
 from jeepney import DBusAddress, new_method_call
 from jeepney.io.asyncio import open_dbus_router
-from .wifi_network import WiFiNetwork, SecurityType
+
+from ..network import SecurityType, WiFiNetwork
+from .constants import (
+    AP_INTERFACE,
+    DEVICE_INTERFACE,
+    NM_INTERFACE,
+    NM_PATH,
+    NM_SERVICE,
+    PROPERTIES_INTERFACE,
+    SIGNAL_OFFSET,
+    WIFI_DEVICE_TYPE,
+    WIRELESS_INTERFACE,
+)
 
 
 class WiFiScanner:
-    NM_SERVICE = 'org.freedesktop.NetworkManager'
-    NM_PATH = '/org/freedesktop/NetworkManager'
-    NM_INTERFACE = 'org.freedesktop.NetworkManager'
-    DEVICE_INTERFACE = 'org.freedesktop.NetworkManager.Device'
-    WIRELESS_INTERFACE = 'org.freedesktop.NetworkManager.Device.Wireless'
-    AP_INTERFACE = 'org.freedesktop.NetworkManager.AccessPoint'
-    PROPERTIES_INTERFACE = 'org.freedesktop.DBus.Properties'
-
-    WIFI_DEVICE_TYPE = 2
-    SIGNAL_OFFSET = -100
-
     def __init__(self):
         self._wireless_device: str | None = None
 
@@ -26,7 +27,7 @@ class WiFiScanner:
         return reply.body
 
     async def _get_property(self, router, object_path: str, interface: str, property_name: str):
-        address = DBusAddress(object_path, bus_name=self.NM_SERVICE, interface=self.PROPERTIES_INTERFACE)
+        address = DBusAddress(object_path, bus_name=NM_SERVICE, interface=PROPERTIES_INTERFACE)
         body = await self._call_method(router, address, 'Get', 'ss', (interface, property_name))
         value = body[0]
         return value[1] if isinstance(value, tuple) and len(value) == 2 else value
@@ -35,12 +36,12 @@ class WiFiScanner:
         if self._wireless_device:
             return self._wireless_device
 
-        address = DBusAddress(self.NM_PATH, bus_name=self.NM_SERVICE, interface=self.NM_INTERFACE)
+        address = DBusAddress(NM_PATH, bus_name=NM_SERVICE, interface=NM_INTERFACE)
         devices = (await self._call_method(router, address, 'GetDevices'))[0]
 
         for device_path in devices:
-            device_type = await self._get_property(router, device_path, self.DEVICE_INTERFACE, 'DeviceType')
-            if device_type == self.WIFI_DEVICE_TYPE:
+            device_type = await self._get_property(router, device_path, DEVICE_INTERFACE, 'DeviceType')
+            if device_type == WIFI_DEVICE_TYPE:
                 self._wireless_device = device_path
                 return device_path
 
@@ -48,33 +49,33 @@ class WiFiScanner:
 
     async def _request_scan(self, router):
         device_path = await self._find_wireless_device(router)
-        address = DBusAddress(device_path, bus_name=self.NM_SERVICE, interface=self.WIRELESS_INTERFACE)
+        address = DBusAddress(device_path, bus_name=NM_SERVICE, interface=WIRELESS_INTERFACE)
         await self._call_method(router, address, 'RequestScan', 'a{sv}', ({},))
         await asyncio.sleep(2)
 
-    async def _get_access_points(self, router) -> List[str]:
+    async def _get_access_points(self, router) -> list[str]:
         device_path = await self._find_wireless_device(router)
-        address = DBusAddress(device_path, bus_name=self.NM_SERVICE, interface=self.WIRELESS_INTERFACE)
+        address = DBusAddress(device_path, bus_name=NM_SERVICE, interface=WIRELESS_INTERFACE)
         return (await self._call_method(router, address, 'GetAccessPoints'))[0]
 
     async def _create_network(self, router, ap_path: str) -> WiFiNetwork | None:
-        ssid_bytes = await self._get_property(router, ap_path, self.AP_INTERFACE, 'Ssid')
+        ssid_bytes = await self._get_property(router, ap_path, AP_INTERFACE, 'Ssid')
         ssid = bytes(ssid_bytes).decode('utf-8', errors='ignore').strip()
 
         if not ssid:
             return None
 
-        bssid = str(await self._get_property(router, ap_path, self.AP_INTERFACE, 'HwAddress'))
-        strength = int(await self._get_property(router, ap_path, self.AP_INTERFACE, 'Strength')) # type: ignore
-        frequency = int(await self._get_property(router, ap_path, self.AP_INTERFACE, 'Frequency')) # type: ignore
-        flags = int(await self._get_property(router, ap_path, self.AP_INTERFACE, 'Flags')) # type: ignore
-        wpa_flags = int(await self._get_property(router, ap_path, self.AP_INTERFACE, 'WpaFlags')) # type: ignore
-        rsn_flags = int(await self._get_property(router, ap_path, self.AP_INTERFACE, 'RsnFlags')) # type: ignore
+        bssid = str(await self._get_property(router, ap_path, AP_INTERFACE, 'HwAddress'))
+        strength = int(await self._get_property(router, ap_path, AP_INTERFACE, 'Strength')) # type: ignore
+        frequency = int(await self._get_property(router, ap_path, AP_INTERFACE, 'Frequency')) # type: ignore
+        flags = int(await self._get_property(router, ap_path, AP_INTERFACE, 'Flags')) # type: ignore
+        wpa_flags = int(await self._get_property(router, ap_path, AP_INTERFACE, 'WpaFlags')) # type: ignore
+        rsn_flags = int(await self._get_property(router, ap_path, AP_INTERFACE, 'RsnFlags')) # type: ignore
 
         return WiFiNetwork(
             ssid=ssid,
             bssid=bssid,
-            signal_strength=self.SIGNAL_OFFSET + strength,
+            signal_strength=SIGNAL_OFFSET + strength,
             frequency=frequency,
             security_type=self._get_security_type(flags, wpa_flags, rsn_flags),
             channel=self._frequency_to_channel(frequency)
@@ -98,7 +99,7 @@ class WiFiScanner:
             return (frequency - 5000) // 5
         return 0
 
-    async def scan(self) -> List[WiFiNetwork]:
+    async def scan(self) -> list[WiFiNetwork]:
         async with open_dbus_router(bus='SYSTEM') as router:
             await self._request_scan(router)
             access_points = await self._get_access_points(router)

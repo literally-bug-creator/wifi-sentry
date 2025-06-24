@@ -42,7 +42,7 @@ class WiFiNetwork:
         elif self._signal_strength <= -90:
             return 0
         else:
-            return int(2 * (self._signal_strength + 100))
+            return min(100, int(2 * (self._signal_strength + 100)))
     
     def get_frequency(self) -> int:
         return self._frequency

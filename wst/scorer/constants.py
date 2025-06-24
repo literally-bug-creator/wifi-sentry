@@ -13,6 +13,13 @@ SIMILAR_SSID_THRESHOLD = 3
 
 # Similar SSID patterns for detection
 SUSPICIOUS_SSID_PATTERNS = [
-    'free_wifi', 'freewifi', 'free wifi', 'guest', 'public',
-    'wifi', 'internet', 'hotspot', 'access'
+    "free_wifi",
+    "freewifi",
+    "free wifi",
+    "guest",
+    "public",
+    "wifi",
+    "internet",
+    "hotspot",
+    "access",
 ]

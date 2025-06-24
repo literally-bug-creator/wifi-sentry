@@ -3,7 +3,9 @@ from wst.network import ConnectionState, SecurityType, WiFiNetwork
 
 def test_get_ssid():
     # Arrange
-    network = WiFiNetwork("TestNetwork", "aa:bb:cc:dd:ee:ff", -50, 2437, SecurityType.WPA2)
+    network = WiFiNetwork(
+        "TestNetwork", "aa:bb:cc:dd:ee:ff", -50, 2437, SecurityType.WPA2
+    )
 
     # Act
     result = network.get_ssid()
@@ -58,7 +60,9 @@ def test_get_channel_returns_none_when_not_set():
 
 def test_get_channel_returns_value_when_set():
     # Arrange
-    network = WiFiNetwork("Test", "aa:bb:cc:dd:ee:ff", -50, 2437, SecurityType.WPA2, channel=11)
+    network = WiFiNetwork(
+        "Test", "aa:bb:cc:dd:ee:ff", -50, 2437, SecurityType.WPA2, channel=11
+    )
 
     # Act
     result = network.get_channel()
@@ -102,7 +106,14 @@ def test_is_connected_returns_false_for_disconnected_network():
 
 def test_is_connected_returns_true_for_connected_network():
     # Arrange
-    network = WiFiNetwork("Test", "aa:bb:cc:dd:ee:ff", -50, 2437, SecurityType.WPA2, ConnectionState.CONNECTED)
+    network = WiFiNetwork(
+        "Test",
+        "aa:bb:cc:dd:ee:ff",
+        -50,
+        2437,
+        SecurityType.WPA2,
+        ConnectionState.CONNECTED,
+    )
 
     # Act
     result = network.is_connected()
@@ -175,7 +186,15 @@ def test_init_creates_network_with_all_fields():
     channel = 6
 
     # Act
-    network = WiFiNetwork(ssid, bssid, signal_strength, frequency, security_type, connection_state, channel)
+    network = WiFiNetwork(
+        ssid,
+        bssid,
+        signal_strength,
+        frequency,
+        security_type,
+        connection_state,
+        channel,
+    )
 
     # Assert
     assert network.get_ssid() == ssid

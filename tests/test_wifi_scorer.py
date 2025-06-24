@@ -5,7 +5,7 @@ from wst.scorer import WiFiScorer
 def test_init_creates_scorer_with_networks():
     networks = [
         WiFiNetwork("Test1", "aa:bb:cc:dd:ee:f1", -50, 2437, SecurityType.WPA2),
-        WiFiNetwork("Test2", "aa:bb:cc:dd:ee:f2", -60, 2437, SecurityType.OPEN)
+        WiFiNetwork("Test2", "aa:bb:cc:dd:ee:f2", -60, 2437, SecurityType.OPEN),
     ]
 
     scorer = WiFiScorer(networks)
@@ -46,8 +46,12 @@ def test_calculate_score_adds_6_points_for_handshake_vulnerable():
 
 
 def test_calculate_score_adds_3_points_for_duplicate_ssid():
-    network1 = WiFiNetwork("Duplicate", "aa:bb:cc:dd:ee:f1", -50, 2437, SecurityType.WPA3)
-    network2 = WiFiNetwork("Duplicate", "aa:bb:cc:dd:ee:f2", -60, 2437, SecurityType.WPA3)
+    network1 = WiFiNetwork(
+        "Duplicate", "aa:bb:cc:dd:ee:f1", -50, 2437, SecurityType.WPA3
+    )
+    network2 = WiFiNetwork(
+        "Duplicate", "aa:bb:cc:dd:ee:f2", -60, 2437, SecurityType.WPA3
+    )
     scorer = WiFiScorer([network1, network2])
 
     score, reasons = scorer.calculate_score(network1)
@@ -57,8 +61,12 @@ def test_calculate_score_adds_3_points_for_duplicate_ssid():
 
 
 def test_calculate_score_adds_3_points_for_multi_channel():
-    network1 = WiFiNetwork("MultiCh", "aa:bb:cc:dd:ee:f1", -50, 2437, SecurityType.WPA3, channel=6)
-    network2 = WiFiNetwork("MultiCh", "aa:bb:cc:dd:ee:f2", -50, 2462, SecurityType.WPA3, channel=11)
+    network1 = WiFiNetwork(
+        "MultiCh", "aa:bb:cc:dd:ee:f1", -50, 2437, SecurityType.WPA3, channel=6
+    )
+    network2 = WiFiNetwork(
+        "MultiCh", "aa:bb:cc:dd:ee:f2", -50, 2462, SecurityType.WPA3, channel=11
+    )
     scorer = WiFiScorer([network1, network2])
 
     score, reasons = scorer.calculate_score(network1)
@@ -71,7 +79,7 @@ def test_calculate_score_adds_3_points_for_similar_ssids():
     networks = [
         WiFiNetwork("Free_WiFi", "aa:bb:cc:dd:ee:f1", -50, 2437, SecurityType.WPA3),
         WiFiNetwork("FreeWiFi", "aa:bb:cc:dd:ee:f2", -50, 2437, SecurityType.WPA3),
-        WiFiNetwork("Free WiFi", "aa:bb:cc:dd:ee:f3", -50, 2437, SecurityType.WPA3)
+        WiFiNetwork("Free WiFi", "aa:bb:cc:dd:ee:f3", -50, 2437, SecurityType.WPA3),
     ]
     scorer = WiFiScorer(networks)
 
@@ -93,8 +101,12 @@ def test_calculate_score_adds_3_points_for_open_with_encrypted_duplicate():
 
 
 def test_calculate_score_adds_4_points_for_evil_twin_signal():
-    network1 = WiFiNetwork("EvilTwin", "aa:bb:cc:dd:ee:f1", -30, 2437, SecurityType.WPA3)
-    network2 = WiFiNetwork("EvilTwin", "aa:bb:cc:dd:ee:f2", -80, 2437, SecurityType.WPA3)
+    network1 = WiFiNetwork(
+        "EvilTwin", "aa:bb:cc:dd:ee:f1", -30, 2437, SecurityType.WPA3
+    )
+    network2 = WiFiNetwork(
+        "EvilTwin", "aa:bb:cc:dd:ee:f2", -80, 2437, SecurityType.WPA3
+    )
     scorer = WiFiScorer([network1, network2])
 
     score, reasons = scorer.calculate_score(network1)

@@ -58,31 +58,45 @@ class WiFiScorer:
 
         if target.get_security_type() == SecurityType.OPEN:
             score += RiskIndicator.OPEN.score
-            reasons.append(f"{RiskIndicator.OPEN.description} (+{RiskIndicator.OPEN.score})")
+            reasons.append(
+                f"{RiskIndicator.OPEN.description} (+{RiskIndicator.OPEN.score})"
+            )
 
         if self._is_handshake_vulnerable(target):
             score += RiskIndicator.HANDSHAKE.score
-            reasons.append(f"{RiskIndicator.HANDSHAKE.description} (+{RiskIndicator.HANDSHAKE.score})")
+            reasons.append(
+                f"{RiskIndicator.HANDSHAKE.description} (+{RiskIndicator.HANDSHAKE.score})"
+            )
 
         if self._has_duplicate_ssid(target):
             score += RiskIndicator.DUPLICATE.score
-            reasons.append(f"{RiskIndicator.DUPLICATE.description} (+{RiskIndicator.DUPLICATE.score})")
+            reasons.append(
+                f"{RiskIndicator.DUPLICATE.description} (+{RiskIndicator.DUPLICATE.score})"
+            )
 
         if self._has_evil_twin_signal(target):
             score += RiskIndicator.EVIL_TWIN.score
-            reasons.append(f"{RiskIndicator.EVIL_TWIN.description} (+{RiskIndicator.EVIL_TWIN.score})")
+            reasons.append(
+                f"{RiskIndicator.EVIL_TWIN.description} (+{RiskIndicator.EVIL_TWIN.score})"
+            )
 
         if self._has_multi_channel(target):
             score += RiskIndicator.MULTI_CHANNEL.score
-            reasons.append(f"{RiskIndicator.MULTI_CHANNEL.description} (+{RiskIndicator.MULTI_CHANNEL.score})")
+            reasons.append(
+                f"{RiskIndicator.MULTI_CHANNEL.description} (+{RiskIndicator.MULTI_CHANNEL.score})"
+            )
 
         if self._has_similar_ssids(target):
             score += RiskIndicator.SIMILAR_SSIDS.score
-            reasons.append(f"{RiskIndicator.SIMILAR_SSIDS.description} (+{RiskIndicator.SIMILAR_SSIDS.score})")
+            reasons.append(
+                f"{RiskIndicator.SIMILAR_SSIDS.description} (+{RiskIndicator.SIMILAR_SSIDS.score})"
+            )
 
         if self._has_open_with_encrypted_duplicate(target):
             score += RiskIndicator.OPEN_ENCRYPTED.score
-            reasons.append(f"{RiskIndicator.OPEN_ENCRYPTED.description} (+{RiskIndicator.OPEN_ENCRYPTED.score})")
+            reasons.append(
+                f"{RiskIndicator.OPEN_ENCRYPTED.description} (+{RiskIndicator.OPEN_ENCRYPTED.score})"
+            )
 
         return score, reasons
 

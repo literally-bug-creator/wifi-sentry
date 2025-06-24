@@ -16,7 +16,7 @@ class RiskLevel(Enum):
     MINOR = ("Minor Risk", 5, 8)
     MEDIUM = ("Medium Risk", 9, 13)
     HIGH = ("High Risk", 14, 18)
-    CRITICAL = ("Critical Danger", 19, float('inf'))
+    CRITICAL = ("Critical Danger", 19, float("inf"))
 
     def __init__(self, name: str, min_score: int, max_score: float):
         self.level_name = name
@@ -36,7 +36,7 @@ class RiskLevel(Enum):
             return 9 if score <= 25 else 10
 
     @classmethod
-    def from_score(cls, score: int) -> 'RiskLevel':
+    def from_score(cls, score: int) -> "RiskLevel":
         for level in cls:
             if level.min_score <= score <= level.max_score:
                 return level

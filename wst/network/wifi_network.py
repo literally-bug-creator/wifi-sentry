@@ -2,9 +2,16 @@ from .enums import SecurityType, ConnectionState
 
 
 class WiFiNetwork:
-    def __init__(self, ssid: str, bssid: str, signal_strength: int, frequency: int,
-                 security_type: SecurityType, connection_state: ConnectionState = ConnectionState.DISCONNECTED,
-                 channel: int | None = None):
+    def __init__(
+        self,
+        ssid: str,
+        bssid: str,
+        signal_strength: int,
+        frequency: int,
+        security_type: SecurityType,
+        connection_state: ConnectionState = ConnectionState.DISCONNECTED,
+        channel: int | None = None,
+    ):
         self._ssid = ssid
         self._bssid = bssid
         self._signal_strength = signal_strength

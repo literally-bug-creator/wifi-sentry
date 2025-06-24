@@ -1,7 +1,8 @@
-import dbus
 import time
 from functools import wraps
 from typing import List, Optional
+from jeepney import DBusAddress, new_method_call
+from jeepney.io.blocking import open_dbus_connection
 from wifi_network import WiFiNetwork, SecurityType, ConnectionState
 
 
@@ -10,15 +11,13 @@ def handle_dbus_errors(func):
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except dbus.DBusException as e:
+        except Exception as e:
             if "ServiceUnknown" in str(e):
                 raise RuntimeError("NetworkManager is not running")
             elif "AccessDenied" in str(e):
                 raise RuntimeError("Access denied - try running with sudo")
             else:
                 raise RuntimeError(f"D-Bus error: {e}")
-        except Exception as e:
-            raise RuntimeError(f"Unexpected error: {e}")
     return wrapper
 
 
@@ -57,54 +56,46 @@ class WiFiManager:
 
     @handle_dbus_errors
     def __init__(self):
-        self.system_bus = dbus.SystemBus()
-        self.nm_proxy = self._get_nm_proxy()
-        self.nm_interface = self._get_nm_interface()
-        self.device_interface = None
+        self.connection = open_dbus_connection(bus='SYSTEM')
+        self.nm_address = DBusAddress(self.NM_PATH, bus_name=self.NM_SERVICE, interface=self.NM_INTERFACE)
         self.wireless_device = None
         self._find_wireless_device()
 
-    def _get_nm_proxy(self):
-        return self.system_bus.get_object(self.NM_SERVICE, self.NM_PATH)
+    def _get_property(self, address, property_name):
+        msg = new_method_call(
+            DBusAddress(address.object_path, bus_name=address.bus_name, interface=self.PROPERTIES_INTERFACE),
+            'Get',
+            'ss',
+            (address.interface, property_name)
+        )
+        reply = self.connection.send_and_get_reply(msg)
+        value = reply.body[0]
+        # Handle D-Bus variant types - extract actual value from tuple
+        if isinstance(value, tuple) and len(value) == 2:
+            return value[1]  # (type, value) -> value
+        return value
 
-    def _get_nm_interface(self):
-        return dbus.Interface(self.nm_proxy, self.NM_INTERFACE)
-
-    def _get_device_proxy(self, device_path):
-        return self.system_bus.get_object(self.NM_SERVICE, device_path)
-
-    def _get_device_properties(self, device_proxy):
-        return dbus.Interface(device_proxy, self.PROPERTIES_INTERFACE)
-
-    def _get_wireless_interface(self, device_proxy):
-        return dbus.Interface(device_proxy, self.WIRELESS_INTERFACE)
-
-    def _get_ap_proxy(self, ap_path):
-        return self.system_bus.get_object(self.NM_SERVICE, ap_path)
-
-    def _get_ap_properties(self, ap_proxy):
-        return dbus.Interface(ap_proxy, self.PROPERTIES_INTERFACE)
-
-    def _get_connection_proxy(self, conn_path):
-        return self.system_bus.get_object(self.NM_SERVICE, conn_path)
-
-    def _get_connection_properties(self, conn_proxy):
-        return dbus.Interface(conn_proxy, self.PROPERTIES_INTERFACE)
-
-    def _get_nm_properties(self):
-        return dbus.Interface(self.nm_proxy, self.PROPERTIES_INTERFACE)
+    def _set_property(self, address, property_name, signature, value):
+        msg = new_method_call(
+            DBusAddress(address.object_path, bus_name=address.bus_name, interface=self.PROPERTIES_INTERFACE),
+            'Set',
+            'ssv',
+            (address.interface, property_name, (signature, value))
+        )
+        self.connection.send_and_get_reply(msg)
 
     @handle_dbus_errors
     def _find_wireless_device(self):
-        devices = self.nm_interface.GetDevices()
+        msg = new_method_call(self.nm_address, 'GetDevices')
+        reply = self.connection.send_and_get_reply(msg)
+        devices = reply.body[0]
+
         for device_path in devices:
-            device_proxy = self._get_device_proxy(device_path)
-            device_props = self._get_device_properties(device_proxy)
-            device_type = device_props.Get(self.DEVICE_INTERFACE, 'DeviceType')
+            device_address = DBusAddress(device_path, bus_name=self.NM_SERVICE, interface=self.DEVICE_INTERFACE)
+            device_type = self._get_property(device_address, 'DeviceType')
 
             if device_type == self.NM_DEVICE_TYPE_WIFI:
                 self.wireless_device = device_path
-                self.device_interface = self._get_wireless_interface(device_proxy)
                 return
 
         if not self.wireless_device:
@@ -112,13 +103,22 @@ class WiFiManager:
 
     @handle_dbus_errors
     def scan_networks(self) -> List[WiFiNetwork]:
-        if not self.device_interface:
+        if not self.wireless_device:
             raise RuntimeError("No wireless device available")
 
-        self.device_interface.RequestScan({})
+        wireless_address = DBusAddress(self.wireless_device, bus_name=self.NM_SERVICE, interface=self.WIRELESS_INTERFACE)
+        
+        # Request scan
+        msg = new_method_call(wireless_address, 'RequestScan', 'a{sv}', ({},))
+        self.connection.send_and_get_reply(msg)
+        
         time.sleep(self.SCAN_WAIT_TIME)
 
-        access_points = self.device_interface.GetAccessPoints()
+        # Get access points
+        msg = new_method_call(wireless_address, 'GetAccessPoints')
+        reply = self.connection.send_and_get_reply(msg)
+        access_points = reply.body[0]
+
         networks = []
         seen_ssids = set()
 
@@ -133,21 +133,20 @@ class WiFiManager:
 
     def _create_network_from_ap(self, ap_path: str) -> Optional[WiFiNetwork]:
         try:
-            ap_proxy = self._get_ap_proxy(ap_path)
-            ap_props = self._get_ap_properties(ap_proxy)
+            ap_address = DBusAddress(ap_path, bus_name=self.NM_SERVICE, interface=self.AP_INTERFACE)
 
-            ssid_bytes = ap_props.Get(self.AP_INTERFACE, 'Ssid')
+            ssid_bytes = self._get_property(ap_address, 'Ssid')
             ssid = bytes(ssid_bytes).decode('utf-8', errors='ignore').strip()
 
             if not ssid:
                 return None
 
-            bssid = ap_props.Get(self.AP_INTERFACE, 'HwAddress')
-            strength = int(ap_props.Get(self.AP_INTERFACE, 'Strength'))
-            frequency = int(ap_props.Get(self.AP_INTERFACE, 'Frequency'))
-            flags = int(ap_props.Get(self.AP_INTERFACE, 'Flags'))
-            wpa_flags = int(ap_props.Get(self.AP_INTERFACE, 'WpaFlags'))
-            rsn_flags = int(ap_props.Get(self.AP_INTERFACE, 'RsnFlags'))
+            bssid = self._get_property(ap_address, 'HwAddress')
+            strength = self._get_property(ap_address, 'Strength')
+            frequency = self._get_property(ap_address, 'Frequency')
+            flags = self._get_property(ap_address, 'Flags')
+            wpa_flags = self._get_property(ap_address, 'WpaFlags')
+            rsn_flags = self._get_property(ap_address, 'RsnFlags')
 
             signal_dbm = self.SIGNAL_OFFSET + strength
             security_type = self._get_security_type(flags, wpa_flags, rsn_flags)
@@ -196,17 +195,14 @@ class WiFiManager:
 
     def _get_connection_state(self, ap_path: str) -> ConnectionState:
         try:
-            nm_props = self._get_nm_properties()
-            active_connections = nm_props.Get(self.NM_INTERFACE, 'ActiveConnections')
+            active_connections = self._get_property(self.nm_address, 'ActiveConnections')
 
             for conn_path in active_connections:
-                conn_proxy = self._get_connection_proxy(conn_path)
-                conn_props = self._get_connection_properties(conn_proxy)
-
-                devices = conn_props.Get(self.CONNECTION_INTERFACE, 'Devices')
+                conn_address = DBusAddress(conn_path, bus_name=self.NM_SERVICE, interface=self.CONNECTION_INTERFACE)
+                devices = self._get_property(conn_address, 'Devices')
 
                 if self.wireless_device in devices:
-                    state = conn_props.Get(self.CONNECTION_INTERFACE, 'State')
+                    state = self._get_property(conn_address, 'State')
 
                     if state == self.STATE_ACTIVATED:
                         return ConnectionState.CONNECTED
@@ -236,11 +232,9 @@ class WiFiManager:
 
     @handle_dbus_errors
     def is_wifi_enabled(self) -> bool:
-        nm_props = self._get_nm_properties()
-        return bool(nm_props.Get(self.NM_INTERFACE, 'WirelessEnabled'))
+        return bool(self._get_property(self.nm_address, 'WirelessEnabled'))
 
     @handle_dbus_errors
     def enable_wifi(self, enable: bool = True) -> bool:
-        nm_props = self._get_nm_properties()
-        nm_props.Set(self.NM_INTERFACE, 'WirelessEnabled', dbus.Boolean(enable))
+        self._set_property(self.nm_address, 'WirelessEnabled', 'b', enable)
         return True

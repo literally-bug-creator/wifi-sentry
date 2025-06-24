@@ -55,3 +55,88 @@ A **CLI-based** tool for **passive vulnerability scanning and risk assessment of
 | 9–13        | 5–6                   | Medium Risk     |
 | 14–18       | 7–8                   | High Risk       |
 | 19+         | 9–10                  | Critical Danger |
+
+# 🚀 Getting Started
+
+## Download
+
+```bash
+git clone https://github.com/example/wifi-sentry.git
+cd wifi-sentry
+```
+
+## Build
+
+```bash
+# Install dependencies
+uv sync --group dev
+
+# Build package
+uv build
+```
+
+## Test
+
+```bash
+# Run all tests
+uv run pytest
+
+# Run tests with coverage
+uv run pytest --cov=wst --cov-report=html
+
+# View coverage report
+open htmlcov/index.html
+```
+
+## Usage
+
+### Scan Networks
+
+```bash
+# Scan and list all nearby WiFi networks
+uv run wst scan
+```
+
+### Analyze Network Risk
+
+```bash
+# Analyze specific network by SSID
+uv run wst score --ssid "NetworkName"
+
+# Analyze specific network by BSSID
+uv run wst score --bssid "aa:bb:cc:dd:ee:ff"
+
+# Analyze by both SSID and BSSID
+uv run wst score --ssid "NetworkName" --bssid "aa:bb:cc:dd:ee:ff"
+```
+
+### Example Output
+
+```
+$ uv run wst scan
+Found 5 networks
+┌────┬──────────────────────┬───────────────────┬──────────────────┬──────────────┬────┬──────┐
+│ №  │ SSID                 │ BSSID             │ Signal           │ Security     │ CH │ Freq │
+├────┼──────────────────────┼───────────────────┼──────────────────┼──────────────┼────┼──────┤
+ 1 │ HomeNetwork          │ aa:bb:cc:dd:ee:f1 │ ████████░░  80% │ 🔒 wpa2       │  6 │ 2437
+ 2 │ Free_WiFi            │ bb:cc:dd:ee:ff:aa │ ██████░░░░  60% │ 🔓 open       │ 11 │ 2462
+└────┴──────────────────────┴───────────────────┴──────────────────┴──────────────┴────┴──────┘
+
+$ uv run wst score --ssid "Free_WiFi"
+Target: Free_WiFi
+BSSID: bb:cc:dd:ee:ff:aa
+Security: open
+
+Risk factors:
+  • Open network (+7)
+  • Similar SSIDs (+3)
+
+Score: 10 | Rating: 5/10 | Level: Medium Risk
+⚡ MEDIUM RISK
+```
+
+## Requirements
+
+- Python 3.12+
+- Linux with NetworkManager
+- D-Bus system access

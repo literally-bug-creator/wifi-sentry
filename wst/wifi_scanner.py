@@ -2,7 +2,7 @@ import asyncio
 from typing import List
 from jeepney import DBusAddress, new_method_call
 from jeepney.io.asyncio import open_dbus_router
-from wifi_network import WiFiNetwork, SecurityType
+from .wifi_network import WiFiNetwork, SecurityType
 
 
 class WiFiScanner:
